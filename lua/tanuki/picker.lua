@@ -8,11 +8,15 @@ for name, a in pairs(Actions.actions) do
   M.actions[name] = {
     desc = a.desc,
     action = function(picker, item, action)
-      local items = picker:selected({ fallback = true })
-      if item and item.gl_item then
-        item = item.gl_item
-        items = { item }
+      local items, seen = {}, {}
+      for _, it in ipairs(picker:selected({ fallback = true })) do
+        it = it.gl_item or it
+        if not seen[it] then
+          seen[it] = true
+          items[#items + 1] = it
+        end
       end
+      item = item and item.gl_item or item
       if item then
         return a.action(item, { picker = picker, items = items, action = action })
       end
@@ -44,7 +48,7 @@ local function list_finder(type)
     o.search = ctx.filter.search ~= "" and ctx.filter.search or nil
     return function(cb)
       for _, item in ipairs(Api.list(type, opts.gl, o)) do
-        cb(item)
+        cb(setmetatable({ gl_item = item }, { __index = item }))
       end
     end
   end
@@ -57,7 +61,8 @@ function M.format(item, picker)
 
   local icons = config.icons[item.type]
   local status = icons[item.status] and item.status or "other"
-  ret[#ret + 1] = { a(icons[status], 2), "Tanuki" .. Snacks.picker.util.title(item.type) .. Snacks.picker.util.title(status) }
+  ret[#ret + 1] = { a(icons[status], 2), "Tanuki" ..
+  Snacks.picker.util.title(item.type) .. Snacks.picker.util.title(status) }
   ret[#ret + 1] = { " " }
   ret[#ret + 1] = { a(item.hash, 7), "SnacksPickerDimmed" }
 
